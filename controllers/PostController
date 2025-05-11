@@ -1,0 +1,107 @@
+<?php
+class PostController {
+    private $db;
+    private $session;
+    private $post;
+    private $comment;
+    
+    public function __construct($db, $session) {
+        $this->db = $db;
+        $this->session = $session;
+        $this->post = new Post($db);
+        $this->comment = new Comment($db);
+    }
+    
+    // Display home page with all posts
+    public function index() {
+        $posts = $this->post->getAllPosts();
+        $currentUser = $this->session->getCurrentUser();
+        
+        include 'views/home.php';
+    }
+    
+    // Display single post
+    public function view() {
+        $postId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        
+        if ($postId <= 0) {
+            $this->session->setFlash('error', 'Invalid post ID.');
+            header('Location: index.php');
+            exit;
+        }
+        
+        $post = $this->post->getById($postId);
+        
+        if (!$post) {
+            $this->session->setFlash('error', 'Post not found.');
+            header('Location: index.php');
+            exit;
+        }
+        
+        $comments = $this->comment->getCommentsByPost($postId);
+        $currentUser = $this->session->getCurrentUser();
+        
+        include 'views/posts/view.php';
+    }
+    
+    // Create new post
+    public function create() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $content = $_POST['content'] ?? '';
+            $userId = $this->session->getCurrentUserId();
+            
+            // Validate input
+            if (empty($content)) {
+                $this->session->setFlash('error', 'Post content cannot be empty.');
+                header('Location: index.php');
+                exit;
+            }
+            
+            // Create post
+            $this->post->user_id = $userId;
+            $this->post->content = $content;
+            
+            if ($this->post->create()) {
+                $this->session->setFlash('success', 'Post created successfully.');
+            } else {
+                $this->session->setFlash('error', 'Failed to create post. Please try again.');
+            }
+            
+            header('Location: index.php');
+            exit;
+        } else {
+            include 'views/posts/create.php';
+        }
+    }
+    
+    // Delete post
+    public function delete() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $postId = $_POST['post_id'] ?? 0;
+            $userId = $this->session->getCurrentUserId();
+            
+            if ($postId <= 0) {
+                $this->session->setFlash('error', 'Invalid post ID.');
+                header('Location: index.php');
+                exit;
+            }
+            
+            // Delete post
+            $this->post->post_id = $postId;
+            $this->post->user_id = $userId; // Ensure user can only delete their own posts
+            
+            if ($this->post->delete()) {
+                $this->session->setFlash('success', 'Post deleted successfully.');
+            } else {
+                $this->session->setFlash('error', 'Failed to delete post. Please try again.');
+            }
+            
+            header('Location: index.php');
+            exit;
+        } else {
+            header('Location: index.php');
+            exit;
+        }
+    }
+}
+?>
