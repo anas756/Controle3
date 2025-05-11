@@ -1,0 +1,77 @@
+<?php
+// Sanitize input data
+function sanitize($data) {
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
+
+// Generate a unique token
+function generateToken($length = 32) {
+    return bin2hex(random_bytes($length));
+}
+
+// Format datetime
+function formatDateTime($datetime) {
+    $date = new DateTime($datetime);
+    $now = new DateTime();
+    $diff = $now->diff($date);
+    
+    if ($diff->y > 0) {
+        return $date->format('M j, Y');
+    } elseif ($diff->m > 0) {
+        return $date->format('M j');
+    } elseif ($diff->d > 0) {
+        return $diff->d . ' days ago';
+    } elseif ($diff->h > 0) {
+        return $diff->h . ' hours ago';
+    } elseif ($diff->i > 0) {
+        return $diff->i . ' minutes ago';
+    } else {
+        return 'Just now';
+    }
+}
+
+// Redirect to a URL
+function redirect($url) {
+    header("Location: $url");
+    exit;
+}
+
+// Upload profile picture
+function uploadProfilePicture($file) {
+    $targetDir = "public/uploads/profile_pictures/";
+    
+    // Create directory if it doesn't exist
+    if (!file_exists($targetDir)) {
+        mkdir($targetDir, 0777, true);
+    }
+    
+    $fileName = time() . '_' . basename($file["name"]);
+    $targetFilePath = $targetDir . $fileName;
+    $fileType = pathinfo($targetFilePath, PATHINFO_EXTENSION);
+    
+    // Allow certain file formats
+    $allowedTypes = array('jpg', 'png', 'jpeg', 'gif');
+    
+    if (in_array(strtolower($fileType), $allowedTypes)) {
+        // Upload file
+        if (move_uploaded_file($file["tmp_name"], $targetFilePath)) {
+            return $fileName;
+        }
+    }
+    
+    return false;
+}
+
+// Generate a secure password hash
+function hashPassword($password) {
+    return password_hash($password, PASSWORD_DEFAULT);
+}
+
+// Verify password
+function verifyPassword($password, $hashedPassword) {
+    return password_verify($password, $hashedPassword);
+}
+?>
