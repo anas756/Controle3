@@ -1,0 +1,191 @@
+<?php
+class User {
+    private $conn;
+    private $table_name = "users";
+    
+    // Properties
+    public $user_id;
+    public $username;
+    public $email;
+    public $password;
+    public $first_name;
+    public $last_name;
+    public $profile_picture;
+    public $bio;
+    public $created_at;
+    public $updated_at;
+    
+    // Constructor
+    public function __construct($db) {
+        $this->conn = $db;
+    }
+    
+    // Create a new user
+    public function create() {
+        $query = "INSERT INTO " . $this->table_name . " 
+                  (username, email, password, first_name, last_name, profile_picture) 
+                  VALUES (:username, :email, :password, :first_name, :last_name, :profile_picture)";
+                  
+        $stmt = $this->conn->prepare($query);
+        
+        // Sanitize and bind values
+        $this->username = sanitize($this->username);
+        $this->email = sanitize($this->email);
+        $this->first_name = sanitize($this->first_name);
+        $this->last_name = sanitize($this->last_name);
+        $this->profile_picture = $this->profile_picture ?? 'default.jpg';
+        
+        $stmt->bindParam(':username', $this->username);
+        $stmt->bindParam(':email', $this->email);
+        $stmt->bindParam(':password', $this->password);
+        $stmt->bindParam(':first_name', $this->first_name);
+        $stmt->bindParam(':last_name', $this->last_name);
+        $stmt->bindParam(':profile_picture', $this->profile_picture);
+        
+        try {
+            if ($stmt->execute()) {
+                $this->user_id = $this->conn->lastInsertId();
+                return true;
+            }
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+        }
+        
+        return false;
+    }
+    
+    // Find user by username or email
+    public function findByUsernameOrEmail($login) {
+        $query = "SELECT * FROM " . $this->table_name . " 
+                  WHERE username = :login OR email = :login 
+                  LIMIT 1";
+                  
+        $stmt = $this->conn->prepare($query);
+        $login = sanitize($login);
+        $stmt->bindParam(':login', $login);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    // Find user by ID
+    public function findById($id) {
+        $query = "SELECT * FROM " . $this->table_name . " 
+                  WHERE user_id = :id 
+                  LIMIT 1";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    // Update user profile
+    public function update() {
+        $query = "UPDATE " . $this->table_name . " 
+                  SET first_name = :first_name, 
+                      last_name = :last_name, 
+                      bio = :bio";
+        
+        // Add profile picture to query if provided
+        if ($this->profile_picture) {
+            $query .= ", profile_picture = :profile_picture";
+        }
+        
+        $query .= " WHERE user_id = :user_id";
+        
+        $stmt = $this->conn->prepare($query);
+        
+        // Sanitize and bind values
+        $this->first_name = sanitize($this->first_name);
+        $this->last_name = sanitize($this->last_name);
+        $this->bio = sanitize($this->bio);
+        
+        $stmt->bindParam(':first_name', $this->first_name);
+        $stmt->bindParam(':last_name', $this->last_name);
+        $stmt->bindParam(':bio', $this->bio);
+        $stmt->bindParam(':user_id', $this->user_id);
+        
+        // Bind profile picture if provided
+        if ($this->profile_picture) {
+            $stmt->bindParam(':profile_picture', $this->profile_picture);
+        }
+        
+        try {
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+    
+    // Save remember me token
+    public function saveRememberToken($token, $expires) {
+        $query = "INSERT INTO remember_tokens (user_id, token, expires_at) 
+                  VALUES (:user_id, :token, :expires_at)";
+                  
+        $stmt = $this->conn->prepare($query);
+        
+        $stmt->bindParam(':user_id', $this->user_id);
+        $stmt->bindParam(':token', $token);
+        $stmt->bindParam(':expires_at', $expires);
+        
+        try {
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+    
+    // Find user by remember token
+    public function findByRememberToken($token) {
+        $query = "SELECT u.* FROM " . $this->table_name . " u
+                  JOIN remember_tokens rt ON u.user_id = rt.user_id
+                  WHERE rt.token = :token AND rt.expires_at > NOW()
+                  LIMIT 1";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+    
+    // Delete remember token
+    public function deleteRememberToken($token) {
+        $query = "DELETE FROM remember_tokens WHERE token = :token";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':token', $token);
+        
+        return $stmt->execute();
+    }
+    
+    // Check if username exists
+    public function usernameExists($username) {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name . " 
+                  WHERE username = :username";
+                  
+        $stmt = $this->conn->prepare($query);
+        $username = sanitize($username);
+        $stmt->bindParam(':username', $username);
+        $stmt->execute();
+        
+        return $stmt->fetchColumn() > 0;
+    }
+    
+    // Check if email exists
+    public function emailExists($email) {
+        $query = "SELECT COUNT(*) FROM " . $this->table_name . " 
+                  WHERE email = :email";
+                  
+        $stmt = $this->conn->prepare($query);
+        $email = sanitize($email);
+        $stmt->bindParam(':email', $email);
+        $stmt->execute();
+        
+        return $stmt->fetchColumn() > 0;
+    }
+}
+?>
