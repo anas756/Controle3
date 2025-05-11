@@ -1,0 +1,117 @@
+<?php
+class ProfileController {
+    private $db;
+    private $session;
+    private $user;
+    private $post;
+    
+    public function __construct($db, $session) {
+        $this->db = $db;
+        $this->session = $session;
+        $this->user = new User($db);
+        $this->post = new Post($db);
+    }
+    
+    // View profile
+    public function view() {
+        $userId = isset($_GET['id']) ? (int)$_GET['id'] : $this->session->getCurrentUserId();
+        
+        // Get user data
+        $userData = $this->user->findById($userId);
+        
+        if (!$userData) {
+            $this->session->setFlash('error', 'User not found.');
+            header('Location: index.php');
+            exit;
+        }
+        
+        // Get user posts
+        $userPosts = $this->post->getPostsByUser($userId);
+        
+        include 'views/profile/profile.php';
+    }
+    
+    // Edit profile form
+    public function edit() {
+        $userId = $this->session->getCurrentUserId();
+        $userData = $this->user->findById($userId);
+        
+        include 'views/profile/edit.php';
+    }
+    
+    // Update profile
+    public function update() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $userId = $this->session->getCurrentUserId();
+            
+            // Only allow users to update their own profile
+            if ($userId != $_POST['user_id']) {
+                $this->session->setFlash('error', 'Unauthorized action.');
+                header('Location: index.php');
+                exit;
+            }
+            
+            $first_name = $_POST['first_name'] ?? '';
+            $last_name = $_POST['last_name'] ?? '';
+            $bio = $_POST['bio'] ?? '';
+            
+            // Validate input
+            $errors = [];
+            
+            if (empty($first_name)) {
+                $errors[] = 'First name is required.';
+            }
+            
+            if (empty($last_name)) {
+                $errors[] = 'Last name is required.';
+            }
+            
+            // If validation fails, show form with errors
+            if (!empty($errors)) {
+                $this->session->setFlash('errors', $errors);
+                header('Location: index.php?page=profile&action=edit');
+                exit;
+            }
+            
+            // Handle profile picture upload
+            $profile_picture = null;
+            if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
+                $profile_picture = uploadProfilePicture($_FILES['profile_picture']);
+                
+                if ($profile_picture === false) {
+                    $this->session->setFlash('error', 'Failed to upload profile picture. Please try again.');
+                    header('Location: index.php?page=profile&action=edit');
+                    exit;
+                }
+            }
+            
+            // Update user data
+            $this->user->user_id = $userId;
+            $this->user->first_name = $first_name;
+            $this->user->last_name = $last_name;
+            $this->user->bio = $bio;
+            
+            if ($profile_picture) {
+                $this->user->profile_picture = $profile_picture;
+            }
+            
+            if ($this->user->update()) {
+                // Update session data
+                $updatedUser = $this->user->findById($userId);
+                $this->session->setUser($updatedUser);
+                
+                $this->session->setFlash('success', 'Profile updated successfully.');
+                header('Location: index.php?page=profile');
+                exit;
+            } else {
+                $this->session->setFlash('error', 'Failed to update profile. Please try again.');
+                header('Location: index.php?page=profile&action=edit');
+                exit;
+            }
+        } else {
+            header('Location: index.php?page=profile&action=edit');
+            exit;
+        }
+    }
+}
+?>
