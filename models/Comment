@@ -1,0 +1,91 @@
+<?php
+class Comment {
+    private $conn;
+    private $table_name = "comments";
+    
+    // Properties
+    public $comment_id;
+    public $post_id;
+    public $user_id;
+    public $content;
+    public $created_at;
+    
+    // Constructor
+    public function __construct($db) {
+        $this->conn = $db;
+    }
+    
+    // Create a new comment
+    public function create() {
+        $query = "INSERT INTO " . $this->table_name . " 
+                  (post_id, user_id, content) 
+                  VALUES (:post_id, :user_id, :content)";
+                  
+        $stmt = $this->conn->prepare($query);
+        
+        // Sanitize and bind values
+        $this->content = sanitize($this->content);
+        
+        $stmt->bindParam(':post_id', $this->post_id);
+        $stmt->bindParam(':user_id', $this->user_id);
+        $stmt->bindParam(':content', $this->content);
+        
+        try {
+            if ($stmt->execute()) {
+                $this->comment_id = $this->conn->lastInsertId();
+                return true;
+            }
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+        }
+        
+        return false;
+    }
+    
+    // Get comments for a post
+    public function getCommentsByPost($postId) {
+        $query = "SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+                  FROM " . $this->table_name . " c
+                  JOIN users u ON c.user_id = u.user_id
+                  WHERE c.post_id = :post_id
+                  ORDER BY c.created_at ASC";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':post_id', $postId);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    // Delete a comment
+    public function delete() {
+        $query = "DELETE FROM " . $this->table_name . " 
+                  WHERE comment_id = :comment_id AND user_id = :user_id";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':comment_id', $this->comment_id);
+        $stmt->bindParam(':user_id', $this->user_id);
+        
+        try {
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            echo "Error: " . $e->getMessage();
+            return false;
+        }
+    }
+    
+    // Get a single comment by ID
+    public function getById($commentId) {
+        $query = "SELECT c.*, u.username, u.first_name, u.last_name, u.profile_picture
+                  FROM " . $this->table_name . " c
+                  JOIN users u ON c.user_id = u.user_id
+                  WHERE c.comment_id = :comment_id
+                  LIMIT 1";
+                  
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':comment_id', $commentId);
+        $stmt->execute();
+        
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+}
