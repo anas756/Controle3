@@ -1,0 +1,47 @@
+<?php 
+$pageTitle = 'Login';
+$contentView = 'views/auth/login_content.php';
+include 'views/layouts/main_layout.php';
+?>
+
+<?php // This is the actual content that will be included in the main layout ?>
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h1 class="text-center mb-4">Login</h1>
+                
+                <form action="index.php?page=auth&action=login" method="post">
+                    <div class="mb-3">
+                        <label for="login" class="form-label">Username or Email</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="login" name="login" required autofocus>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+                    </div>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <p class="mb-0">Don't have an account? <a href="index.php?page=auth&action=register">Register here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
