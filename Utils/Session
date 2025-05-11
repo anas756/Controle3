@@ -1,0 +1,54 @@
+<?php
+class Session {
+    public function __construct() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+    
+    public function setUser($user) {
+        $_SESSION['user_id'] = $user['user_id'];
+        $_SESSION['username'] = $user['username'];
+        $_SESSION['first_name'] = $user['first_name'];
+        $_SESSION['last_name'] = $user['last_name'];
+        $_SESSION['profile_picture'] = $user['profile_picture'];
+    }
+    
+    public function isLoggedIn() {
+        return isset($_SESSION['user_id']);
+    }
+    
+    public function getCurrentUserId() {
+        return $_SESSION['user_id'] ?? null;
+    }
+    
+    public function getCurrentUser() {
+        if (!$this->isLoggedIn()) {
+            return null;
+        }
+        
+        return [
+            'user_id' => $_SESSION['user_id'],
+            'username' => $_SESSION['username'],
+            'first_name' => $_SESSION['first_name'],
+            'last_name' => $_SESSION['last_name'],
+            'profile_picture' => $_SESSION['profile_picture']
+        ];
+    }
+    
+    public function setFlash($key, $message) {
+        $_SESSION['flash'][$key] = $message;
+    }
+    
+    public function getFlash($key) {
+        $message = $_SESSION['flash'][$key] ?? null;
+        unset($_SESSION['flash'][$key]);
+        return $message;
+    }
+    
+    public function clearSession() {
+        session_unset();
+        session_destroy();
+    }
+}
+?>
