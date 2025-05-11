@@ -1,0 +1,117 @@
+<?php 
+$pageTitle = 'View Post';
+$contentView = 'views/posts/view_content.php';
+include 'views/layouts/main_layout.php';
+?>
+
+<?php // This is the actual content that will be included in the main layout ?>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Back Button -->
+        <div class="mb-3">
+            <a href="index.php" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Feed
+            </a>
+        </div>
+        
+        <!-- Post Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <?php if (isset($post['profile_picture']) && $post['profile_picture'] != 'default.jpg'): ?>
+                            <img src="public/uploads/profile_pictures/<?php echo $post['profile_picture']; ?>" class="rounded-circle me-2" width="40" height="40" alt="Profile">
+                        <?php else: ?>
+                            <div class="bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        <?php endif; ?>
+                        <div>
+                            <h6 class="mb-0"><?php echo $post['first_name'] . ' ' . $post['last_name']; ?></h6>
+                            <p class="text-muted small mb-0"><?php echo formatDateTime($post['created_at']); ?></p>
+                        </div>
+                    </div>
+                    <?php if ($post['user_id'] == $currentUser['user_id']): ?>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                                <form action="index.php?page=post&action=delete" method="post">
+                                    <input type="hidden" name="post_id" value="<?php echo $post['post_id']; ?>">
+                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to delete this post?')">
+                                        <i class="fas fa-trash-alt me-2"></i> Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text"><?php echo nl2br(htmlspecialchars($post['content'])); ?></p>
+            </div>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Comments (<?php echo count($comments); ?>)</h5>
+            </div>
+            <div class="card-body">
+                <!-- Add Comment Form -->
+                <form action="index.php?page=comment&action=add" method="post" class="mb-4">
+                    <input type="hidden" name="post_id" value="<?php echo $post['post_id']; ?>">
+                    <div class="input-group">
+                        <textarea class="form-control" name="content" placeholder="Write a comment..." required></textarea>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Comments List -->
+                <?php if (empty($comments)): ?>
+                    <p class="text-muted">No comments yet. Be the first to comment!</p>
+                <?php else: ?>
+                    <?php foreach ($comments as $comment): ?>
+                        <div class="d-flex mb-3">
+                            <!-- User Avatar -->
+                            <?php if (isset($comment['profile_picture']) && $comment['profile_picture'] != 'default.jpg'): ?>
+                                <img src="public/uploads/profile_pictures/<?php echo $comment['profile_picture']; ?>" class="rounded-circle me-2 mt-1" width="32" height="32" alt="Profile">
+                            <?php else: ?>
+                                <div class="bg-primary text-white rounded-circle me-2 mt-1 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <!-- Comment Content -->
+                            <div class="flex-grow-1">
+                                <div class="bg-light rounded p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0"><?php echo $comment['first_name'] . ' ' . $comment['last_name']; ?></h6>
+                                        <small class="text-muted"><?php echo formatDateTime($comment['created_at']); ?></small>
+                                    </div>
+                                    <p class="mb-0"><?php echo nl2br(htmlspecialchars($comment['content'])); ?></p>
+                                </div>
+                                
+                                <!-- Delete Comment Option -->
+                                <?php if ($comment['user_id'] == $currentUser['user_id']): ?>
+                                    <div class="mt-1 text-end">
+                                        <form action="index.php?page=comment&action=delete" method="post" class="d-inline">
+                                            <input type="hidden" name="comment_id" value="<?php echo $comment['comment_id']; ?>">
+                                            <input type="hidden" name="post_id" value="<?php echo $post['post_id']; ?>">
+                                            <button type="submit" class="btn btn-sm text-danger" onclick="return confirm('Are you sure you want to delete this comment?')">
+                                                <i class="fas fa-trash-alt me-1"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
