@@ -1,0 +1,88 @@
+<?php
+class CommentController {
+    private $db;
+    private $session;
+    private $comment;
+    
+    public function __construct($db, $session) {
+        $this->db = $db;
+        $this->session = $session;
+        $this->comment = new Comment($db);
+    }
+    
+    // Add comment to post
+    public function add() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $postId = $_POST['post_id'] ?? 0;
+            $content = $_POST['content'] ?? '';
+            $userId = $this->session->getCurrentUserId();
+            
+            // Validate input
+            if ($postId <= 0) {
+                $this->session->setFlash('error', 'Invalid post ID.');
+                header('Location: index.php');
+                exit;
+            }
+            
+            if (empty($content)) {
+                $this->session->setFlash('error', 'Comment content cannot be empty.');
+                header('Location: index.php?page=post&action=view&id=' . $postId);
+                exit;
+            }
+            
+            // Create comment
+            $this->comment->post_id = $postId;
+            $this->comment->user_id = $userId;
+            $this->comment->content = $content;
+            
+            if ($this->comment->create()) {
+                $this->session->setFlash('success', 'Comment added successfully.');
+            } else {
+                $this->session->setFlash('error', 'Failed to add comment. Please try again.');
+            }
+            
+            header('Location: index.php?page=post&action=view&id=' . $postId);
+            exit;
+        } else {
+            header('Location: index.php');
+            exit;
+        }
+    }
+    
+    // Delete comment
+    public function delete() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $commentId = $_POST['comment_id'] ?? 0;
+            $postId = $_POST['post_id'] ?? 0;
+            $userId = $this->session->getCurrentUserId();
+            
+            if ($commentId <= 0) {
+                $this->session->setFlash('error', 'Invalid comment ID.');
+                header('Location: index.php');
+                exit;
+            }
+            
+            // Delete comment
+            $this->comment->comment_id = $commentId;
+            $this->comment->user_id = $userId; // Ensure user can only delete their own comments
+            
+            if ($this->comment->delete()) {
+                $this->session->setFlash('success', 'Comment deleted successfully.');
+            } else {
+                $this->session->setFlash('error', 'Failed to delete comment. Please try again.');
+            }
+            
+            // Redirect back to post page if post_id is provided
+            if ($postId > 0) {
+                header('Location: index.php?page=post&action=view&id=' . $postId);
+            } else {
+                header('Location: index.php');
+            }
+            exit;
+        } else {
+            header('Location: index.php');
+            exit;
+        }
+    }
+}
+?>
